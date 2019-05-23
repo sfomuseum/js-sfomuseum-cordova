@@ -9,21 +9,27 @@ sfomuseum.cordova.file = (function(){
 
 	    var make_data = function(bytes){
 
-		var blob = new Blob(bytes);
-		var reader = new FileReader();
-		
-		reader.onloadend = function(){
-		    on_success(this.result);
-		};
-		
-		reader.readAsDataURL(blob);
+		try {
+
+		    var blob = new Blob([ bytes ]);
+		    var reader = new FileReader();
+		    
+		    reader.onloadend = function(){
+			on_success(this.result);
+		    };
+		    
+		    reader.readAsDataURL(blob);
+		    
+		} catch(e){
+		    on_error(e);
+		}
 	    };
 
 	    this.read(rel_path, make_data, on_error);
 	},
 	
 	'read': function (rel_path, on_success, on_error){
-
+	    
 	    // I know you're supposed to use cdvfile:// but for the life ome I can't
 	    // get it to work... (20190523/thisisaaronland)
 	    // https://github.com/apache/cordova-plugin-file#cdvfile-protocol
@@ -64,7 +70,7 @@ sfomuseum.cordova.file = (function(){
 	    // FileError - code: "Missing Command Error"
 
 	    var abs_path = cordova.file.applicationDirectory + "www/" + rel_path;
-	    
+
 	    var on_fail = function(e){
 		console.log("Failed to load file", rel_path, e);
 		on_error(e);
@@ -73,10 +79,10 @@ sfomuseum.cordova.file = (function(){
 	    var on_read = function(path){
 
 		path.file(function(file) {
-		    
+
 		    var reader = new FileReader();
 		    
-		    reader.onloadend = function(e) {		    
+		    reader.onloadend = function(e) {
 			on_success(this.result);
 		    }
 
