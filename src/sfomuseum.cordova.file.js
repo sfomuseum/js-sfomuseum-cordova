@@ -5,30 +5,23 @@ sfomuseum.cordova.file = (function(){
 
     var self = {
 
-	'readAsDataURL': function(rel_path, on_success, on_error){
+	'readAsArrayBuffer': function(rel_path, on_success, on_error){
+	    return this.readAs(rel_path, "buffer", on_success, on_error);
+	},
 
-	    var make_data = function(bytes){
-
-		try {
-
-		    var blob = new Blob([ bytes ]);
-		    var reader = new FileReader();
-		    
-		    reader.onloadend = function(){
-			on_success(this.result);
-		    };
-		    
-		    reader.readAsDataURL(blob);
-		    
-		} catch(e){
-		    on_error(e);
-		}
-	    };
-
-	    this.read(rel_path, make_data, on_error);
+	'readAsBinaryString': function(rel_path, on_success, on_error){
+	    return this.readAs(rel_path, "binary", on_success, on_error);
 	},
 	
-	'read': function (rel_path, on_success, on_error){
+	'readAsDataURL': function(rel_path, on_success, on_error){
+	    return this.readAs(rel_path, "data", on_success, on_error);
+	},
+
+	'readAsText': function(rel_path, on_success, on_error){
+	    return this.readAs(rel_path, "text", on_success, on_error);
+	},
+	
+	'readAs': function (rel_path, read_as, on_success, on_error){	    
 	    
 	    // I know you're supposed to use cdvfile:// but for the life ome I can't
 	    // get it to work... (20190523/thisisaaronland)
@@ -53,11 +46,58 @@ sfomuseum.cordova.file = (function(){
 		// https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 		// https://developer.mozilla.org/en-US/docs/Web/API/Response
 
-		fetch(uri_path).then(response =>
-		    response.arrayBuffer()
-		).then(bytes =>
-		    on_success(bytes)
-		).catch(err => {
+		fetch(uri_path).then(response => {
+
+		    // https://developer.mozilla.org/en-US/docs/Web/API/Response
+
+		    switch (read_as){
+			case "buffer":
+			    
+			    response.arrayBuffer().then(buffer => {
+				on_success(buffer);
+			    }).catch(err => {
+				on_error(err);
+			    });
+			    
+			    break;
+			    
+			case "text":
+			    
+			    response.text().then(body => {
+				on_success(body);
+			    }).catch(err => {
+				on_error(err);
+			    });
+			    
+			    break;
+			    
+			default:
+			    
+			    response.blob().then(blob => {
+				
+				var reader = new FileReader();
+				
+				reader.onloadend = function(e) {
+				    on_success(this.result);
+				}
+				
+				switch (read_as){
+				    case "binary":
+					reader.readAsBinaryString(blob);
+					break;
+				    case "data":
+					reader.readAsDataURL(blob);
+					break;
+				    default:
+					on_error("Unsupported read target");
+				}
+				
+			    }).catch(err => {
+				on_error(err);
+			    });
+			}
+		    
+		}).catch(err => {
 		    on_error(err);
 		});
 		
@@ -86,7 +126,25 @@ sfomuseum.cordova.file = (function(){
 			on_success(this.result);
 		    }
 
-		    reader.readAsArrayBuffer(file);
+		    // https://developer.mozilla.org/en-US/docs/Web/API/FileReader
+
+		    switch (read_as){
+			case "binary":
+			    reader.readAsBinaryString(file);
+			    break;
+			case "buffer":
+			    reader.readAsArrayBuffer(file);
+			    break;
+			case "data":
+			    reader.readAsDataURL(file);
+			    break;
+			case "text":			    
+			    reader.readAsText(file);
+			    break;
+			default:
+			    on_error("Unsupported read target");
+		    }
+		    
 		});
 	    };
 	    
